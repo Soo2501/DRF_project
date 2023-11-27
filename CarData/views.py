@@ -2,10 +2,47 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, APIView
-from .api_file.serializers import CarSerializers, ShowroomSerializers
-from .models import Carlist, Showroomlist
-from rest_framework.authentication import BasicAuthentication
+from .api_file.serializers import CarSerializers, ShowroomSerializers, ReviewSerializers
+from .models import Carlist, Showroomlist, Review
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework import mixins
+from rest_framework import generics
+
+
+class ReviewList(mixins.ListModelMixin, 
+                 mixins.CreateModelMixin,
+                 generics.GenericAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializers
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+    
+class ReviewDetail(mixins.RetrieveModelMixin, 
+                   generics.GenericAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializers
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+    
+class ReviewDelete(mixins.DestroyModelMixin,
+                   generics.GenericAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializers
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+
+
+
 # Create your views here.
 
 # def carlist(request):
@@ -25,7 +62,6 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 #         'status' : car.active
 #     }
 #     return JsonResponse(data)
-
 
 @api_view(['GET','POST'])
 def car_list(request):
@@ -96,7 +132,8 @@ def remove_data(request, id):
 
 
 class ShowroomList(APIView):
-    authentication_classes = [BasicAuthentication]
+    # authentication_classes = [BasicAuthentication]
+    authentication_classes = [SessionAuthentication]
     # permission_classes = [IsAuthenticated]
     # permission_classes = [AllowAny]
     permission_classes = [IsAdminUser]
