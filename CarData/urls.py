@@ -1,6 +1,11 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .import views
 from .views import ShowroomList
+
+router = DefaultRouter()
+# router.register('showroom', views.Showroom_Viewset, basename='showroom')
+router.register('showroom', views.Showroom_ViewSet, basename='showroom')
 
 urlpatterns = [
     path('', views.car_list, name='car_list'),
@@ -9,10 +14,11 @@ urlpatterns = [
     path('car/change/<id>/', views.data_change, name="change"),
     path('car/delete/<id>/', views.remove_data, name="delete"),
 
-    path('showroom/', ShowroomList.as_view(), name="showroom-list"),
-    path('showroom/<int:id>/', views.Showroom_Detail.as_view(), name="showroom-detail"),
+    # path('showroom/', ShowroomList.as_view(), name="showroom-list"),
+    # path('showroom/<int:id>/', views.Showroom_Detail.as_view(), name="showroom-detail"),
+    path('', include(router.urls)),
 
     path('review/', views.ReviewList.as_view(), name="review"),
     path('review/<int:id>/', views.ReviewDetail.as_view(), name='review-detail'),
-    path('review/delete/<int:id>/', views.ReviewDelete.as_view(), name='review-delete')
+    # path('review/delete/<int:id>/', views.ReviewDelete.as_view(), name='review-delete')
 ]

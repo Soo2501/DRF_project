@@ -1,44 +1,57 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, APIView
 from .api_file.serializers import CarSerializers, ShowroomSerializers, ReviewSerializers
 from .models import Carlist, Showroomlist, Review
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, DjangoModelPermissions, IsAuthenticatedOrReadOnly
 from rest_framework import mixins
 from rest_framework import generics
+from rest_framework import viewsets
 
 
-class ReviewList(mixins.ListModelMixin, 
-                 mixins.CreateModelMixin,
-                 generics.GenericAPIView):
+class ReviewList(generics.ListCreateAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializers
 
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-    
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
-    
-class ReviewDetail(mixins.RetrieveModelMixin, 
-                   generics.GenericAPIView):
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializers
     lookup_field = 'id'
 
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-    
-class ReviewDelete(mixins.DestroyModelMixin,
-                   generics.GenericAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializers
-    lookup_field = 'id'
 
-    def get(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
+# class ReviewList(mixins.ListModelMixin, 
+#                  mixins.CreateModelMixin,
+#                  generics.GenericAPIView):
+#     queryset = Review.objects.all()
+#     serializer_class = ReviewSerializers
+#     authentication_classes = [SessionAuthentication]
+#     permission_classes = [DjangoModelPermissions]
+
+#     def get(self, request, *args, **kwargs):
+#         return self.list(request, *args, **kwargs)
+    
+#     def post(self, request, *args, **kwargs):
+#         return self.create(request, *args, **kwargs)
+    
+# class ReviewDetail(mixins.RetrieveModelMixin, 
+#                    generics.GenericAPIView):
+#     queryset = Review.objects.all()
+#     serializer_class = ReviewSerializers
+#     lookup_field = 'id'
+
+#     def get(self, request, *args, **kwargs):
+#         return self.retrieve(request, *args, **kwargs)
+    
+# class ReviewDelete(mixins.DestroyModelMixin,
+#                    generics.GenericAPIView):
+#     queryset = Review.objects.all()
+#     serializer_class = ReviewSerializers
+#     lookup_field = 'id'
+
+#     def get(self, request, *args, **kwargs):
+#         return self.destroy(request, *args, **kwargs)
 
 
 
@@ -129,6 +142,50 @@ def remove_data(request, id):
         car_list = Carlist.objects.all()
         serializer = CarSerializers(car_list, many=True)
         return Response({'Payload':serializer.data,'messages':'deleted'})
+
+
+"""
+    Using Viewset
+"""
+# class Showroom_Viewset(viewsets.ViewSet):
+#     def list(self, request):
+#         queryset = Showroomlist.objects.all()
+#         serializer = ShowroomSerializers(queryset, many=True)
+#         return Response(serializer.data)
+    
+
+#     def retrieve(self, request, pk=None):
+#         queryset = Showroomlist.objects.all()
+#         showroom = get_object_or_404(queryset, pk=pk)
+#         serializer = ShowroomSerializers(showroom)
+#         return Response(serializer.data)
+    
+#     def create(self, request):
+#         serializer = ShowroomSerializers(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         else:
+#             return Response(serializer.errors)
+        
+#     def destroy(self, request, pk=None):
+#         queryset = Showroomlist.objects.all()
+#         showroom = get_object_or_404(queryset, pk=pk)
+#         showroom.delete()
+#         return Response({"message":"data deleted successfully"})
+
+
+"""Using ModelViewset"""
+
+# class Showroom_ViewSet(viewsets.ModelViewSet):
+class Showroom_ViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+        A simple ViewSet for viewing and editing accounts.
+    """
+    queryset = Showroomlist.objects.all()
+    serializer_class = ShowroomSerializers
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
 
 
 class ShowroomList(APIView):
