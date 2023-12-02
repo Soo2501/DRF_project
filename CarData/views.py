@@ -4,21 +4,55 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, APIView
 from .api_file.serializers import CarSerializers, ShowroomSerializers, ReviewSerializers
 from .models import Carlist, Showroomlist, Review
-from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication, TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, DjangoModelPermissions, IsAuthenticatedOrReadOnly
 from rest_framework import mixins
 from rest_framework import generics
 from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
+from .api_file.permissions import AdminOrReadOnlyPermissions, ReviewUserOrReadOnlyPermissions
 
-
-class ReviewList(generics.ListCreateAPIView):
-    queryset = Review.objects.all()
+"""
+Using ListApiView
+"""
+class ReviewCreate(generics.CreateAPIView):
     serializer_class = ReviewSerializers
+    def get_queryset(self):
+        return Review.objects.all()
 
+
+    def perform_create(self, serializer):
+        pk = self.kwargs['pk']
+        cars = get_object_or_404(Carlist, pk=pk)
+        useredit = self.request.user
+        Review_queryset = Review.objects.filter(car=cars, apiuser=useredit)
+        if Review_queryset.exists():
+            raise ValidationError("You have already reviewed this car")
+        serializer.save(car=cars, apiuser=useredit)
+        
+
+class ReviewList(generics.ListAPIView):
+    serializer_class = ReviewSerializers
+    authentication_classes = [TokenAuthentication]
+    def get_queryset(self):
+        pk = self.kwargs['pk']
+        return Review.objects.filter(car=pk)
+    
 class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializers
-    lookup_field = 'id'
+    authentication_classes = [TokenAuthentication]
+    # permission_classes = [AdminOrReadOnlyPermissions]
+    permission_classes = [ReviewUserOrReadOnlyPermissions]
+
+# class ReviewList(generics.ListCreateAPIView):
+#     queryset = Review.objects.all()
+#     serializer_class = ReviewSerializers
+
+# class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = Review.objects.all()
+#     serializer_class = ReviewSerializers
+#     lookup_field = 'id'
 
 
 # class ReviewList(mixins.ListModelMixin, 
@@ -68,7 +102,7 @@ class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 # def cardetail(request, id):
-#     car = Carlist.objects.get(id=id)
+#     car = Carlist.objects.get(pk=id)
 #     data = {
 #         'name' : car.name,
 #         'description' : car.description,
@@ -93,23 +127,23 @@ def car_list(request):
 
 
 @api_view(['GET'])
-def cardetail(request, id):
-    car = Carlist.objects.get(id=id)
+def cardetail(request, pk):
+    car = Carlist.objects.get(pk=pk)
     serializer = CarSerializers(car)
 
     return Response(serializer.data)
 
 
 @api_view(['GET','PUT'])
-def car_detail_edit(request, id):
+def car_detail_edit(request, pk):
     if request.method == "GET":
-        car = Carlist.objects.get(id=id)
+        car = Carlist.objects.get(pk=pk)
         serializer = CarSerializers(car)
         return Response(serializer.data)
 
 
     if request.method == "PUT":
-        car = Carlist.objects.get(id=id)
+        car = Carlist.objects.get(pk=id)
         serializer = CarSerializers(car, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -121,12 +155,12 @@ def car_detail_edit(request, id):
 @api_view(['GET','PATCH'])
 def data_change(request, id):
     if request.method == "GET":
-        car = Carlist.objects.get(id=id)
+        car = Carlist.objects.get(pk=id)
         serializer = CarSerializers(car)
         return Response(serializer.data)
     
     if request.method == "PATCH":
-        car = Carlist.objects.get(id=id)
+        car = Carlist.objects.get(pk=id)
         serializer = CarSerializers(car,data=request.data, partial = True)
         if serializer.is_valid():
             serializer.save()
@@ -137,7 +171,7 @@ def data_change(request, id):
 
 @api_view(['GET','DELETE'])
 def remove_data(request, id):
-        car = Carlist.objects.get(id=id)
+        car = Carlist.objects.get(pk=id)
         car.delete()
         car_list = Carlist.objects.all()
         serializer = CarSerializers(car_list, many=True)
@@ -219,7 +253,7 @@ class Showroom_Detail(APIView):
         return Response(serializer.data) 
 
     def put(self, request, id):
-        showroom = Showroomlist.objects.get(id=id)
+        showroom = Showroomlist.objects.get(pk=id)
         serializer = ShowroomSerializers(showroom, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -228,6 +262,7 @@ class Showroom_Detail(APIView):
             return Response(serializer.error)
         
     def delete(self, request, id):
-        showroom = Showroomlist.objects.get(id=id)
+        showroom = Showroomlist.objects.get(pk=id)
         showroom.delete()
         return Response({'message': 'data deleted successfully'})
+    

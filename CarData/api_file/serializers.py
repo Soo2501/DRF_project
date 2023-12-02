@@ -2,10 +2,12 @@ from rest_framework import serializers
 from ..models import Carlist, Showroomlist, Review
 
 class ReviewSerializers(serializers.ModelSerializer):
+    apiuser = serializers.StringRelatedField(read_only=True)
     class Meta:
         model = Review
-        fields= '__all__'
-
+        exclude = ('car',)
+        # fields= '__all__'
+        
 
 class CarSerializers(serializers.ModelSerializer):
     Reviews = ReviewSerializers(many=True, read_only=True)
